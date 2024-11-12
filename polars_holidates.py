@@ -81,7 +81,7 @@ def augment_holidays(data, date_col, country_codes):
 # Usage example
 data = pl.read_csv('dates4timetk.csv')
 data = data.with_columns(
-    pl.col('ds').str.strptime(pl.Datetime, fmt="%Y-%m-%d")
+    pl.col('ds').str.strptime(pl.Datetime, "%Y-%m-%d")
 )
 
 country_codes = ['SE', 'NO', 'FI', 'DK']
