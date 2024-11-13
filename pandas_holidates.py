@@ -1,6 +1,15 @@
 import pandas as pd
 import pytimetk as tk
 
+# date range as df
+start_date = '2015-01-01'
+end_date = '2035-12-31'
+date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+df = pd.DataFrame({'ds': date_range})
+
+
+
+
 def augment_holidays(data, date_col, country_codes):
     """
     Augments the DataFrame with holiday information for the specified country codes.
@@ -34,14 +43,11 @@ def augment_holidays(data, date_col, country_codes):
             'after_holiday': f'{country_code.lower()}_after_holiday'
         }, inplace=True)
         
-         holidates.drop('holiday_name', axis=1, inplace=True)
+        holidates.drop('holiday_name', axis=1, inplace=True)
     
     return holidates
 
-# Usage  
-data = pd.read_csv('dates4timetk.csv', index_col=[0])
-data['ds'] = pd.to_datetime(data['ds'])
-
-country_codes = ['SE', 'NO', 'FI', 'DK']
-holidates = augment_holidays(data, 'ds', country_codes)
+# Usage
+country_codes = ['DE', 'IT', 'JP', 'DK', 'SE', 'LU', 'GR', 'CN']
+holidates = augment_holidays(df, 'ds', country_codes)
 holidates
