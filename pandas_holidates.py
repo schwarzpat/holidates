@@ -47,7 +47,7 @@ def augment_holidays(data, date_col, country_codes):
 
     exogenous_cols = list(holidates)[1:]
     
-    return holidates, static_cols
+    return holidates, exogenous_cols
 
 # Usage
 country_codes = ['DE', 'IT', 'JP', 'DK', 'SE', 'LU', 'GR', 'CN']
