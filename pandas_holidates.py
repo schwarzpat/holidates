@@ -44,10 +44,12 @@ def augment_holidays(data, date_col, country_codes):
         }, inplace=True)
         
         holidates.drop('holiday_name', axis=1, inplace=True)
+
+    static_cols = list(holidates)[1:]
     
-    return holidates
+    return holidates, static_cols
 
 # Usage
 country_codes = ['DE', 'IT', 'JP', 'DK', 'SE', 'LU', 'GR', 'CN']
-holidates = augment_holidays(df, 'ds', country_codes)
+holidates, static_columns = augment_holidays(df, 'ds', country_codes)
 holidates
