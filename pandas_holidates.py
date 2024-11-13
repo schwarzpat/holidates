@@ -34,7 +34,10 @@ def augment_holidays(data, date_col, country_codes):
             sunday_index = holidates[holidates['holiday_name'] == "Söndag"].index
             holidates.loc[sunday_index, 'is_holiday'] = 0
             holidates.loc[sunday_index + 1, 'after_holiday'] = 0
-            holidates.loc[sunday_index - 1, 'before_holiday'] = 0
+
+            # Adjust 'before_holiday' only if the index is greater than 0
+            sunday_index_nonzero = sunday_index[sunday_index > 0]
+            holidates.loc[sunday_index_nonzero - 1, 'before_holiday'] = 0
         
  
         holidates.rename(columns={
