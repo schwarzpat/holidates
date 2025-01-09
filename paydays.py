@@ -74,3 +74,50 @@ for period in example_df["ds"].dt.to_period("M").unique():
 
 # Add a new column to indicate if a date is a Finnish payday
 example_df["payday_fi"] = example_df["ds"].isin(pd.to_datetime(fi_paydays)).astype(int)
+
+------------------
+
+
+# Compute adjusted Danish paydays using the rule (last banking day of the month)
+dk_paydays = []
+for period in example_df["ds"].dt.to_period("M").unique():
+    year = period.year
+    month = period.month
+
+    # Define the last day of the month
+    last_day_of_month = np.datetime64(f"{year}-{month:02d}-{pd.Timestamp(year, month, 1).days_in_month}", "D")
+    
+    # Adjust the last day of the month backward to the nearest valid business day
+    adjusted_payday = np.busday_offset(
+        last_day_of_month,
+        offsets=0,  # Start from the given date
+        roll="backward",  # Move to the nearest valid business day
+        weekmask=weekmask,
+        holidays=holiday_dates,  # Reuse SE holidays for now; can customize if needed
+    )
+    dk_paydays.append(adjusted_payday)
+
+# Add a new column to indicate if a date is a Danish payday
+example_df["payday_dk"] = example_df["ds"].isin(pd.to_datetime(dk_paydays)).astype(int)
+-----------------
+no_paydays = []
+for period in example_df["ds"].dt.to_period("M").unique():
+    year = period.year
+    month = period.month
+
+    # Define the 20th of the month
+    payday = np.datetime64(f"{year}-{month:02d}-20", "D")
+    
+    # Adjust the 20th of the month backward to the nearest valid business day
+    adjusted_payday = np.busday_offset(
+        payday,
+        offsets=0,  # Start from the given date
+        roll="backward",  # Move to the nearest valid business day
+        weekmask=weekmask,
+        holidays=holiday_dates,  # Reuse SE holidays for now; can customize if needed
+    )
+    no_paydays.append(adjusted_payday)
+
+# Add a new column to indicate if a date is a Norwegian payday
+example_df["payday_no"] = example_df["ds"].isin(pd.to_datetime(no_paydays)).astype(int)
+
