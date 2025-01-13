@@ -143,3 +143,27 @@ for period in example_df["ds"].dt.to_period("M").unique():
 
 # Add a new column to indicate if a date is a pension day
 example_df["pension_dk"] = example_df["ds"].isin(pd.to_datetime(pension_days)).astype(int)
+
+
+----------
+
+# Melt the data to a long format including all columns except the extracted 'item_id'
+long_df = initial_df.melt(id_vars=["ds", "weekend"], var_name="variable", value_name="value")
+
+# Extract the country abbreviation (e.g., SE, DK, FI, NO) and the corresponding indicator
+long_df["item_id"] = long_df["variable"].str.extract(r"(se|no|dk|fi)", expand=False).str.upper()
+long_df["indicator"] = long_df["variable"].str.replace(r"(se_|no_|dk_|fi_)", "", regex=True)
+
+# Drop rows where `item_id` is NaN (indicators without country association)
+long_df = long_df.dropna(subset=["item_id"])
+
+# Pivot the data back to wide format
+target_form = long_df.pivot_table(index=["ds", "weekend", "item_id"], 
+                                  columns="indicator", 
+                                  values="value", 
+                                  fill_value=0).reset_index()
+
+# Flatten the column hierarchy resulting from the pivot
+target_form.columns.name = None
+
+
