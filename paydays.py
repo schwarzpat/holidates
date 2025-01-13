@@ -121,3 +121,17 @@ for period in example_df["ds"].dt.to_period("M").unique():
 # Add a new column to indicate if a date is a Norwegian payday
 example_df["payday_no"] = example_df["ds"].isin(pd.to_datetime(no_paydays)).astype(int)
 
+----------------------
+
+def calculate_dk_pension_day(date, holiday_dates):
+    if date.day == 1:  # Only consider the first of the month
+        adjusted_date = np.busday_offset(date.date(), 0, roll='forward', holidays=holiday_dates)
+        if adjusted_date == date.date():
+            return 1  # The original date is valid
+    return 0
+
+# Apply the function to create dk_pension_day column
+df['dk_pension'] = df['ds'].apply(lambda x: calculate_dk_pension_day(x, holiday_dates))
+
+
+
