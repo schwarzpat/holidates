@@ -123,15 +123,23 @@ example_df["payday_no"] = example_df["ds"].isin(pd.to_datetime(no_paydays)).asty
 
 ----------------------
 
-def calculate_dk_pension_day(date, holiday_dates):
-    if date.day == 1:  # Only consider the first of the month
-        adjusted_date = np.busday_offset(date.date(), 0, roll='forward', holidays=holiday_dates)
-        if adjusted_date == date.date():
-            return 1  # The original date is valid
-    return 0
+pension_days = []
+for period in example_df["ds"].dt.to_period("M").unique():
+    year = period.year
+    month = period.month
 
-# Apply the function to create dk_pension_day column
-df['dk_pension'] = df['ds'].apply(lambda x: calculate_dk_pension_day(x, holiday_dates))
+    # Define the potential pension day (1st of the month)
+    potential_pension_day = np.datetime64(f"{year}-{month:02d}-01", "D")
+    
+    # Adjust pension day forward to the nearest valid business day
+    adjusted_pension_day = np.busday_offset(
+        potential_pension_day,
+        offsets=0,  # Start from the given date
+        roll="forward",  # Move to the nearest valid business day
+        weekmask=weekmask,
+        holidays=holiday_dates,
+    )
+    pension_days.append(adjusted_pension_day)
 
-
-
+# Add a new column to indicate if a date is a pension day
+example_df["pension_dk"] = example_df["ds"].isin(pd.to_datetime(pension_days)).astype(int)
