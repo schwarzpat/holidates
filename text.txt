@@ -1,3 +1,30 @@
+For a given quantile `q ∈ (0, 1)`, the quantile loss is defined as:
+
+:<math>
+QL_q(y, \hat{y}) =
+\begin{cases} 
+q \cdot (y - \hat{y}) & \text{if } y \geq \hat{y} \\ 
+(1 - q) \cdot (\hat{y} - y) & \text{if } y < \hat{y} 
+\end{cases}
+</math>
+
+Where:
+* `y` is the true observed value
+* `\hat{y}` is the predicted quantile value
+
+The Weighted Quantile Loss (WQL) generalizes QL by assigning a weight `w_q` to each quantile `q`:
+
+:<math>
+WQL = \sum_{q \in Q} w_q \cdot QL_q(y, \hat{y}_q)
+</math>
+
+Where:
+* `Q` is the set of quantiles being predicted (e.g., `Q = {0.1, 0.5, 0.9}`)
+* `w_q` is the weight assigned to quantile `q`
+* `\hat{y}_q` is the predicted value for quantile `q`
+
+
+
 AutoGluon is an open-source automated machine learning (AutoML) framework that aims to simplify the model selection, hyperparameter optimization, and ensemble creation for predictive tasks. Below, I will explain the specific models listed in your data.
 Time series forecasting involves predicting future values based on previously observed data points collected at regular intervals. AutoGluon facilitates this by providing the TimeSeriesPredictor, which can handle multiple related time series simultaneously. This predictor can generate forecasts that include both the mean (expected) values and the quantiles of the forecast distribution, offering insights into the range of possible future outcomes.
 Models Listed and Their Functionality in AutoGluon
