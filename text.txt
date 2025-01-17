@@ -1,3 +1,54 @@
+Confluence uses a different syntax for rendering math equations since it does not natively support LaTeX. To include the formulas in Confluence, you can use the MathJax or LaTeX Math Macro plugins, if available. Below is how the Weighted Quantile Loss (WQL) formulas would look for Confluence-compatible environments:
+
+Quantile Loss (QL) Formula in Confluence
+
+If MathJax or similar plugins are supported, use the following:
+
+\[
+QL_q(y, \hat{y}) =
+\begin{cases} 
+q \cdot (y - \hat{y}) & \text{if } y \geq \hat{y} \\ 
+(1 - q) \cdot (\hat{y} - y) & \text{if } y < \hat{y}
+\end{cases}
+\]
+
+For context, write:
+	•	y is the observed value.
+	•	\hat{y} is the predicted quantile.
+
+Weighted Quantile Loss (WQL) Formula in Confluence
+
+\[
+WQL = \sum_{q \in Q} w_q \cdot QL_q(y, \hat{y}_q)
+\]
+
+For explanation:
+	•	Q is the set of quantiles (e.g., {0.1, 0.5, 0.9}).
+	•	w_q is the weight assigned to quantile q.
+	•	\hat{y}_q is the predicted value for quantile q.
+
+Without Math Plugins
+
+If Confluence does not support math rendering plugins, you can write the formulas in plain text:
+
+Quantile Loss (QL):
+
+QL_q(y, ŷ) =
+    q * (y - ŷ), if y >= ŷ
+    (1 - q) * (ŷ - y), if y < ŷ
+
+Weighted Quantile Loss (WQL):
+
+WQL = Σ (w_q * QL_q(y, ŷ_q)), for all q ∈ Q
+
+You can add the explanation as normal text:
+	•	y is the observed value.
+	•	ŷ is the predicted quantile value.
+	•	w_q is the weight for each quantile q.
+
+Using plain text works across all Confluence setups but lacks visual elegance. If plugins are available, the LaTeX version is preferred for clarity.
+
+
 For a given quantile `q ∈ (0, 1)`, the quantile loss is defined as:
 
 :<math>
