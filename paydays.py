@@ -187,4 +187,27 @@ workdays_per_month = df.groupby('year_month').apply(calculate_workdays)
 # Reset index to make it more readable
 workdays_per_month.reset_index(inplace=True)
 
+--------
+
+# Function to adjust the `bys` column
+def adjust_bys(row, df):
+    if row['bys'] == 1:  # Only adjust where `bys` is 1
+        current_date = row['date']
+        while True:
+            # Check if the date is a weekend or a holiday in any country
+            is_weekend = current_date.weekday() in [5, 6]  # Saturday = 5, Sunday = 6
+            is_holiday = df.loc[df['date'] == current_date, ['se_holiday', 'dk_holiday', 'fi_holiday', 'no_holiday']].values[0].sum() > 0
+            
+            if is_weekend or is_holiday:
+                current_date += pd.Timedelta(days=1)  # Move to the next day
+            else:
+                break
+        # Update the date directly in the row
+        return current_date
+    return row['date']
+
+# Apply the adjustment logic directly to the `date` column where `bys` is 1
+df.loc[df['bys'] == 1, 'date'] = df.apply(lambda row: adjust_bys(row, df), axis=1)
+
+
 
