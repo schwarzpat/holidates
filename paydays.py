@@ -209,5 +209,22 @@ def adjust_bys(row, df):
 # Apply the adjustment logic directly to the `date` column where `bys` is 1
 df.loc[df['bys'] == 1, 'date'] = df.apply(lambda row: adjust_bys(row, df), axis=1)
 
+-------------
+
+df = pd.DataFrame(data)
+
+# Define a combined holiday calendar
+holidays = df['date'][
+    (df['se_holiday'] == 1) | 
+    (df['dk_holiday'] == 1) | 
+    (df['fi_holiday'] == 1) | 
+    (df['no_holiday'] == 1)
+].dt.strftime('%Y-%m-%d').tolist()
+
+# Adjust the `bys` column using numpy's busday_offset to ensure only one day has `1`
+adjusted_bys_date = np.busday_offset('2023-01-01', 0, roll='forward', holidays=holidays)
+df['bys'] = df['date'].apply(lambda x: 1 if np.datetime64(x) == np.datetime64(adjusted_bys_date) else 0)
+
+
 
 
