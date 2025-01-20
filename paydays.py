@@ -165,5 +165,26 @@ target_form = long_df.pivot_table(index=["ds", "weekend", "item_id"],
 
 # Flatten the column hierarchy resulting from the pivot
 target_form.columns.name = None
+------
+# Add 'year-month' column for grouping
+df['year_month'] = df['ds'].dt.to_period('M')
+
+# Define a function to calculate workdays per country
+def calculate_workdays(group):
+    total_days = len(group)
+    weekdays = group[~group['ds'].dt.weekday.isin([5, 6])]  # Exclude weekends
+    result = {
+        'se_workdays': len(weekdays) - weekdays['se_holiday'].sum(),
+        'dk_workdays': len(weekdays) - weekdays['dk_holiday'].sum(),
+        'no_workdays': len(weekdays) - weekdays['no_holiday'].sum(),
+        'fi_workdays': len(weekdays) - weekdays['fi_holiday'].sum()
+    }
+    return pd.Series(result)
+
+# Group by 'year_month' and apply the function
+workdays_per_month = df.groupby('year_month').apply(calculate_workdays)
+
+# Reset index to make it more readable
+workdays_per_month.reset_index(inplace=True)
 
 
