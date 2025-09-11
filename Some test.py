@@ -1,71 +1,78 @@
 import re
 
+FLAGS = re.IGNORECASE | re.DOTALL
+
 def to_hive(sql: str) -> str:
-    # --- TRUNC ---
     # TRUNC(ts,'dd') -> cast(to_date(ts) as timestamp)
     sql = re.sub(
         r"TRUNC\s*\(\s*([^)]+?)\s*,\s*'dd'\s*\)",
         r"cast(to_date(\1) as timestamp)",
         sql,
-        flags=re.IGNORECASE
+        flags=FLAGS
     )
 
-    # --- TO_DATE ---
-    sql = re.sub(r"\bTO_DATE\s*\(", "to_date(", sql, flags=re.IGNORECASE)
+    # Normalize TO_DATE
+    sql = re.sub(r"\bTO_DATE\s*\(", "to_date(", sql, flags=FLAGS)
 
-    # --- DAY offsets ---
-    # DATE_ADD(x, INTERVAL N DAY) -> date_add(to_date(x), N)
+    # ---- DAY offsets, including quoted numbers ----
     sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s+([+-]?\d+)\s+DAY\s*\)",
-        r"date_add(to_date(\1), \2)",
+        r"DATE_ADD\s*\(\s*((?:[^()]|\([^()]*\))+?)\s*,\s*INTERVAL\s*'?\s*([+-]?\d+)\s*'?\s*DAY\s*\)",
+        r"date_add(\1, \2)",
         sql,
-        flags=re.IGNORECASE
+        flags=FLAGS
     )
 
-    # --- MINUTES / HOURS / SECONDS ---
-    # If pattern looks like (H*60 + M) treat as fixed clock time
-    def repl_minutes(m):
+    # ---- MINUTE fixed time: (H*60 + M) ----
+    def repl_min_fixed(m):
         base = m.group(1).strip()
-        expr = m.group(2).strip()
-        hm = re.fullmatch(r"(\d+)\s*\*\s*60\s*\+\s*(\d+)", expr)
-        if hm:
-            h = int(hm.group(1))
-            mins = int(hm.group(2))
-            return f"cast(concat(to_date({base}), ' {h:02d}:{mins:02d}:00') as timestamp)"
-        # otherwise relative shift
-        return f"from_unixtime(unix_timestamp({base}) + ({expr}) * 60)"
+        h = int(m.group(2))
+        mi = int(m.group(3))
+        return f"cast(concat(to_date({base}), ' {h:02d}:{mi:02d}:00') as timestamp)"
 
     sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*\(?([^)]*?)\)?\s*MINUTES?\s*\)",
-        repl_minutes,
+        r"DATE_ADD\s*\(\s*((?:[^()]|\([^()]*\))+?)\s*,\s*INTERVAL\s*\(\s*(\d+)\s*\*\s*60\s*\+\s*(\d+)\s*\)\s*MINUTES?\s*\)",
+        repl_min_fixed,
         sql,
-        flags=re.IGNORECASE
+        flags=FLAGS
     )
 
-    def repl_hours(m):
+    # ---- MINUTE relative offset: N ----
+    def repl_min_rel(m):
         base = m.group(1).strip()
-        expr = m.group(2).strip()
-        if expr.isdigit():
-            return f"cast(concat(to_date({base}), ' {int(expr):02d}:00:00') as timestamp)"
-        return f"from_unixtime(unix_timestamp({base}) + ({expr}) * 3600)"
+        total = int(m.group(2))
+        return f"from_unixtime(unix_timestamp({base}) + {total} * 60)"
 
     sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*\(?([^)]*?)\)?\s*HOURS?\s*\)",
-        repl_hours,
+        r"DATE_ADD\s*\(\s*((?:[^()]|\([^()]*\))+?)\s*,\s*INTERVAL\s*\(?\s*([+-]?\d+)\s*\)?\s*MINUTES?\s*\)",
+        repl_min_rel,
         sql,
-        flags=re.IGNORECASE
+        flags=FLAGS
     )
 
-    def repl_seconds(m):
+    # ---- HOUR relative offset ----
+    def repl_hour_rel(m):
         base = m.group(1).strip()
-        expr = m.group(2).strip()
-        return f"from_unixtime(unix_timestamp({base}) + ({expr}))"
+        total = int(m.group(2))
+        return f"from_unixtime(unix_timestamp({base}) + {total} * 3600)"
 
     sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*\(?([^)]*?)\)?\s*SECONDS?\s*\)",
-        repl_seconds,
+        r"DATE_ADD\s*\(\s*((?:[^()]|\([^()]*\))+?)\s*,\s*INTERVAL\s*\(?\s*([+-]?\d+)\s*\)?\s*HOURS?\s*\)",
+        repl_hour_rel,
         sql,
-        flags=re.IGNORECASE
+        flags=FLAGS
+    )
+
+    # ---- SECOND relative offset ----
+    def repl_sec_rel(m):
+        base = m.group(1).strip()
+        total = int(m.group(2))
+        return f"from_unixtime(unix_timestamp({base}) + {total})"
+
+    sql = re.sub(
+        r"DATE_ADD\s*\(\s*((?:[^()]|\([^()]*\))+?)\s*,\s*INTERVAL\s*\(?\s*([+-]?\d+)\s*\)?\s*SECONDS?\s*\)",
+        repl_sec_rel,
+        sql,
+        flags=FLAGS
     )
 
     return sql
