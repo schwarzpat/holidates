@@ -12,49 +12,37 @@ def to_hive(sql: str) -> str:
     # TO_DATE(x) -> to_date(x)
     sql = re.sub(r"\bTO_DATE\s*\(", "to_date(", sql, flags=re.IGNORECASE)
 
-    # DATE_ADD(x, INTERVAL N DAY) -> date_add(x, N)
-    sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s+([+-]?\d+)\s+DAY\s*\)",
-        r"date_add(\1, \2)",
-        sql,
-        flags=re.IGNORECASE
-    )
-
-    # ---- MINUTE patterns ----
-    # DATE_ADD(base, INTERVAL (H*60 + M) MINUTE[S]?)
-    def repl_h60m(m):
+    # --- Handle MINUTES ---
+    def repl_minutes(m):
         base = m.group(1).strip()
-        h = int(m.group(2))
-        mins = int(m.group(3))
-        return f"cast(concat(to_date({base}), ' {h:02d}:{mins:02d}:00') as timestamp)"
+        expr = m.group(2).strip()
+        # case: H*60 + M
+        hm = re.fullmatch(r"(\d+)\s*\*\s*60\s*\+\s*(\d+)", expr)
+        if hm:
+            h = int(hm.group(1))
+            mins = int(hm.group(2))
+            return f"cast(concat(to_date({base}), ' {h:02d}:{mins:02d}:00') as timestamp)"
+        # case: plain integer
+        if expr.isdigit():
+            total = int(expr)
+            h = total // 60
+            mins = total % 60
+            return f"cast(concat(to_date({base}), ' {h:02d}:{mins:02d}:00') as timestamp)"
+        # fallback: leave unchanged
+        return m.group(0)
 
     sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*\(\s*(\d+)\s*\*\s*60\s*\+\s*(\d+)\s*\)\s*MINUTES?\s*\)",
-        repl_h60m,
+        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*\(?([^)]*?)\)?\s*MINUTES?\s*\)",
+        repl_minutes,
         sql,
         flags=re.IGNORECASE
     )
 
-    # DATE_ADD(base, INTERVAL N MINUTE[S]?)
-    def repl_nmins(m):
-        base = m.group(1).strip()
-        total = int(m.group(2))
-        h = total // 60
-        mins = total % 60
-        return f"cast(concat(to_date({base}), ' {h:02d}:{mins:02d}:00') as timestamp)"
-
-    sql = re.sub(
-        r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*([+-]?\d+)\s*MINUTES?\s*\)",
-        repl_nmins,
-        sql,
-        flags=re.IGNORECASE
-    )
-
-    # ---- HOUR patterns ----
+    # --- Handle HOURS ---
     def repl_hours(m):
         base = m.group(1).strip()
-        h = int(m.group(2))
-        return f"cast(concat(to_date({base}), ' {h:02d}:00:00') as timestamp)"
+        total = int(m.group(2))
+        return f"cast(concat(to_date({base}), ' {total:02d}:00:00') as timestamp)"
 
     sql = re.sub(
         r"DATE_ADD\s*\(\s*([^)]+?)\s*,\s*INTERVAL\s*([+-]?\d+)\s*HOURS?\s*\)",
@@ -63,7 +51,7 @@ def to_hive(sql: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # ---- SECOND patterns ----
+    # --- Handle SECONDS ---
     def repl_seconds(m):
         base = m.group(1).strip()
         total = int(m.group(2))
